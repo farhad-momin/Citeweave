@@ -1,0 +1,30 @@
+:root {
+  --paper: #F3F5F2; --surface: #fff; --ink: #1F2A2E; --muted: #5E6B6E; --line: #DCE2DE;
+  --thread: #1E6F6A; --thread-soft: #D7EAE7; --saffron-soft: #F6E8C8; --danger: #B03A2E;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --paper: #141A1C; --surface: #1B2326; --ink: #E3EAE7; --muted: #A2AEAC; --line: #2D383B;
+    --thread: #5BB8AD; --thread-soft: #1F3B39; --saffron-soft: #3A3120; --danger: #E07A6E; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; width: 360px; background: var(--paper); color: var(--ink); font: 13.5px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; }
+header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); font: 600 15px Cambria, Georgia, serif; }
+header a { margin-left: auto; font: 500 12.5px "Segoe UI", system-ui, sans-serif; color: var(--thread); text-decoration: none; }
+main { padding: 14px; }
+.title { font: 600 15px/1.35 Cambria, Georgia, serif; margin: 0 0 4px; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.err { color: var(--danger); }
+.badge { display: inline-block; background: var(--thread-soft); color: var(--thread); padding: 1px 8px; border-radius: 20px; font-size: 11.5px; margin-top: 6px; }
+label { display: block; margin: 12px 0 4px; font-size: 12px; color: var(--muted); }
+select, input { width: 100%; height: 32px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); padding: 0 8px; font: inherit; }
+.row { display: flex; gap: 6px; margin-top: 12px; }
+button { flex: 1; height: 34px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; font: 500 13px inherit; font-family: inherit; }
+button.primary { background: var(--thread); border-color: var(--thread); color: #fff; }
+button:disabled { opacity: .6; cursor: default; }
+.done { background: var(--saffron-soft); padding: 8px 10px; border-radius: 6px; margin-top: 12px; }
+fieldset { border: 0; padding: 0; margin: 0 0 12px; }
+legend { font-weight: 600; margin-bottom: 6px; }
+label.radio { display: flex; gap: 8px; align-items: center; margin: 4px 0; font-weight: 400; }
+[hidden] { display: none !important; }

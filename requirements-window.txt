@@ -1,0 +1,2 @@
+# Optional: a native app window. Without it Citeweave opens in an Edge or Chrome app window.
+pywebview>=5.0,<7

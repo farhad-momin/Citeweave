@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Citeweave options</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <p class="title">Citeweave extension</p>
+    <fieldset>
+      <legend>Send papers to</legend>
+      <label class="radio"><input type="radio" name="mode" value="desktop"> The Citeweave app on this computer</label>
+      <label class="radio"><input type="radio" name="mode" value="web"> The Citeweave web version</label>
+    </fieldset>
+    <div id="desktop-opts">
+      <label for="port">App port (default 23120)</label>
+      <input id="port" type="number" min="1025" max="65535">
+    </div>
+    <div id="web-opts">
+      <label for="url">Web version address</label>
+      <input id="url" type="url" placeholder="https://your-name.github.io/Citeweave/">
+      <p class="small muted">Copy it from Settings, Browser extension, in the web version.</p>
+    </div>
+    <div class="row"><button id="save" class="primary">Save</button></div>
+    <p id="msg" class="small muted"></p>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>

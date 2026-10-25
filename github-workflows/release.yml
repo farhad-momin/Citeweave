@@ -1,0 +1,39 @@
+name: Release
+
+# Push a tag like v0.1.0 to build the Windows app and the browser extensions
+# and attach them to a GitHub release.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements-dev.txt -r requirements-window.txt
+      - run: python -m pytest -q
+      - run: python scripts/build_exe.py
+      - run: python scripts/build_extension.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: citeweave-dist
+          path: |
+            dist/Citeweave-windows.zip
+            dist/citeweave-extension-chromium.zip
+            dist/citeweave-extension-firefox.zip
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            dist/Citeweave-windows.zip
+            dist/citeweave-extension-chromium.zip
+            dist/citeweave-extension-firefox.zip
+          generate_release_notes: true

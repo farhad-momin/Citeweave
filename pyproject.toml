@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "citeweave"
+version = "0.2.0"
+description = "Open source, local-first literature discovery, citation maps and paper tables for researchers"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = ["fastapi>=0.110,<1", "uvicorn>=0.29,<1", "httpx>=0.27,<1", "pypdf>=4.0"]
+keywords = ["research", "literature review", "citation map", "openalex", "bibliography"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: Microsoft :: Windows",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering",
+]
+
+[project.optional-dependencies]
+window = ["pywebview>=5.0,<7"]
+dev = ["pytest>=8", "respx>=0.21", "ruff>=0.5"]
+
+[project.scripts]
+citeweave = "citeweave.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["citeweave*"]
+
+[tool.setuptools.package-data]
+citeweave = ["static/*", "static/js/*", "static/js/views/*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B"]
+ignore = ["B008", "E501", "B905"]
