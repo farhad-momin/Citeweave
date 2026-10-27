@@ -3,7 +3,7 @@
 Every task has a version that works without AI, so the app stays useful at zero cost:
   ask        without AI: ranked papers plus the most relevant sentence of each abstract
   summarize  without AI: the source's own short summary, or the key sentences
-  extract    needs AI (the table stays empty without it)
+  extract    without AI: candidate source excerpts for researcher review
   suggest    needs AI; every suggestion is checked against Crossref and dropped if not found
 """
 from __future__ import annotations
@@ -17,6 +17,7 @@ from .. import sources as S
 from ..fulltext import get_text
 from ..models import dedupe, title_similarity
 from ..rank import key_sentence, rank_papers, split_sentences
+from .evidence import check_values, evidence_row
 from .providers import AIError, chat, is_enabled, parse_json
 
 GROUNDING = (
@@ -118,7 +119,11 @@ PRESET_COLUMNS = [
 ]
 
 
-async def extract_one(paper: dict, columns: list[dict]) -> dict:
+async def extract_one(paper: dict, columns: list[dict], *, use_ai: bool = True) -> dict:
+    if not use_ai or not is_enabled():
+        # Free mode only reads supplied abstracts: no provider, downloads or model setup.
+        text = paper.get("abstract") or paper.get("tldr") or ""
+        return evidence_row(paper, columns, text, "abstract" if paper.get("abstract") else "summary")
     text, kind = await get_text(paper)
     if not text:
         return {"paper_id": paper["id"], "based_on": None, "values": {},
@@ -140,22 +145,24 @@ async def extract_one(paper: dict, columns: list[dict]) -> dict:
             values[c["name"]] = {"value": str(v).strip(), "quote": ""}
         else:
             values[c["name"]] = {"value": "Not reported", "quote": ""}
-    return {"paper_id": paper["id"], "based_on": kind, "values": values, "error": None}
+    check_values(values, text)
+    flagged = sum(v["unverified"] for v in values.values())
+    return {"paper_id": paper["id"], "based_on": kind, "mode": "ai", "values": values,
+            "error": f"{flagged} value(s) lack a matching source quote. Review these values." if flagged else None}
 
 
 async def extract(papers: list[dict], columns: list[dict],
-                  progress: Callable[[str, float], None] | None = None) -> list[dict]:
+                  progress: Callable[[str, float], None] | None = None, *, use_ai: bool = True) -> list[dict]:
     progress = progress or (lambda m, f: None)
-    if not is_enabled():
-        raise AIError("Table extraction needs an AI provider. Pick one in Settings, AI. "
-                      "Ollama is free and runs on your computer.")
     rows = []
     for i, p in enumerate(papers):
         progress(f"Reading paper {i + 1} of {len(papers)}", i / max(len(papers), 1))
         try:
-            rows.append(await extract_one(p, columns))
+            rows.append(await extract_one(p, columns, use_ai=use_ai))
         except AIError as e:
-            rows.append({"paper_id": p["id"], "based_on": None, "values": {}, "error": str(e)})
+            row = await extract_one(p, columns, use_ai=False)
+            row["error"] = f"AI unavailable; showing free evidence excerpts. {e}"
+            rows.append(row)
     progress("Done", 1.0)
     return rows
 
@@ -229,12 +236,19 @@ async def verify_suggestions(items: list[dict]) -> dict:
 
 
 def table_to_csv_rows(columns: list[dict], rows: list[dict], papers: dict[str, dict]) -> list[list[str]]:
-    header = ["Title", "Year", "DOI", "Based on"] + [c["name"] for c in columns]
+    header = ["Title", "Year", "DOI", "Based on", "Mode", "Row note"]
+    for c in columns:
+        header.extend([c["name"], f"{c['name']} (quote)", f"{c['name']} (evidence status)"])
     out = [header]
     for r in rows:
-        p = papers.get(r["paper_id"], {})
-        out.append([p.get("title", ""), str(p.get("year") or ""), p.get("doi") or "", r.get("based_on") or ""]
-                   + [(r.get("values", {}).get(c["name"]) or {}).get("value", "") for c in columns])
+        p = papers.get(r["paper_id"]) or r.get("paper") or {}
+        row = [p.get("title", ""), str(p.get("year") or ""), p.get("doi") or "", r.get("based_on") or "",
+               r.get("mode") or "", r.get("error") or ""]
+        for c in columns:
+            cell = r.get("values", {}).get(c["name"]) or {}
+            row.extend([cell.get("value", ""), cell.get("quote", ""),
+                        cell.get("evidence_status") or ("unverified" if cell.get("unverified") else "not checked")])
+        out.append(row)
     return out
 
 

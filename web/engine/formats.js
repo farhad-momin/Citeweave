@@ -97,7 +97,8 @@ export function toRis(papers) {
 
 // CSV the same way Python's csv module writes it (minimal quoting, CRLF line ends).
 function csvField(v) {
-  const s = v === null || v === undefined ? "" : String(v);
+  let s = v === null || v === undefined ? "" : String(v);
+  if (/^[=+@-]/.test(s.trimStart()) || /^[\t\r\n]/.test(s)) s = "'" + s;
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 

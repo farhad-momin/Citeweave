@@ -23,7 +23,7 @@ Shown as a timeline (year against citations) or a network. Each map also lists t
 
 **Ask a question.** Citeweave finds and ranks the most relevant papers, then writes a short answer that cites each claim with a link to its paper. With AI off, it shows the key sentence from each abstract, and you can get a written answer from your own chatbot. Questions and answers are kept in your history.
 
-**Tables.** Choose papers and describe columns, such as method, sample size, location, key findings or limitations. The AI fills each cell from the abstract, or from the full text when a legal open access PDF exists, and adds a supporting quote. No AI key? Fill it with your own chatbot instead. Citeweave checks every quote against the paper and marks what it cannot confirm. Export to CSV for Excel.
+**Tables.** Choose papers and columns, then select **Find evidence (free)** to retrieve candidate sentences from their abstracts. No account, API key, model download or AI service is needed. This mode uses English keyword cues and marks every excerpt for review; a missing match does not prove the information is absent. Optional AI can interpret the available text, including open access full text in the desktop app. Quotes from automatic AI extraction and pasted chatbot replies are checked against the available source text. A matching quote is not proof that the interpretation is correct. CSV exports retain values, quotes, evidence status and row notes.
 
 **Smart ranking.** An optional small model (about 25 MB) runs on your computer and ranks results by meaning, not only by matching words. No key needed.
 
@@ -75,6 +75,17 @@ For a permanent Firefox install, the extension needs to be signed through addons
 By default the extension talks only to the Citeweave app on your own computer (`http://127.0.0.1:23120`), so keep the app open while you use it. To use it with the web version instead, open the extension's options, choose **The Citeweave web version** and paste the web address. Shortcut: **Alt+Shift+C**.
 
 ## AI, all optional
+
+### Start without any AI setup
+
+1. Leave **Settings → AI → Provider** set to **Off**.
+2. Search for papers or import a BibTeX/RIS library containing abstracts.
+3. Add papers to Tables, choose columns and click **Find evidence (free)**.
+4. Review the candidate excerpts and download the CSV with its supporting evidence.
+
+Search, citation maps, library management, key-sentence answers and evidence tables need no AI provider. Evidence extraction from already imported abstracts works without internet access. Searching scholarly databases still needs a connection and remains subject to their availability and rate limits. Citeweave imposes no credit balance of its own.
+
+If you enable an optional AI provider, **Find evidence (free)** still avoids that provider. If AI table extraction fails, the affected row falls back to free excerpts and explains the failure. A local model remains an optional path for generated prose without a paid API.
 
 Pick a provider in **Settings, AI**:
 
@@ -149,7 +160,7 @@ When the same item was changed on two devices, the newer change wins for that it
 
 ## Data sources and limits
 
-Everything works without keys. Free keys raise the limits:
+The core workflow works without API keys. Some optional sources require keys; public sources can impose limits or be unavailable. See each provider's current documentation for access details:
 
 | Source | Without key | With free key |
 |---|---|---|
@@ -181,6 +192,7 @@ python -m pytest
 - [docs/DESIGN.md](docs/DESIGN.md) covers architecture, folder structure, data model and algorithms.
 - [docs/RESEARCH.md](docs/RESEARCH.md) explains the features researchers need and how each is built from open data.
 - [CONTRIBUTING.md](CONTRIBUTING.md) covers adding a data source or AI provider.
+- [docs/AUDIT.md](docs/AUDIT.md) records the October 2026 audit, fixes, validation and remaining limitations.
 
 ## Acknowledgements
 

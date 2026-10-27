@@ -326,9 +326,6 @@ async def extract(body: dict = Body(...)):
     columns = [c for c in body.get("columns") or [] if (c.get("name") or "").strip()]
     if not columns:
         raise HTTPException(400, "Add at least one column.")
-    if not providers.is_enabled():
-        raise HTTPException(400, "Table extraction needs an AI provider. Choose one in Settings, AI. "
-                                 "Ollama is free and runs on your computer.")
     refs = body.get("papers") or []
     if body.get("collection_id"):
         refs = library.collection_papers(int(body["collection_id"]))
@@ -338,7 +335,7 @@ async def extract(body: dict = Body(...)):
 
     async def run(progress):
         papers = [await _paper_from(r) for r in refs[:200]]
-        rows = await tasks.extract(papers, columns, progress=progress)
+        rows = await tasks.extract(papers, columns, progress=progress, use_ai=body.get("use_ai", True))
         for r, p in zip(rows, papers):
             r["paper"] = {k: p.get(k) for k in ("id", "title", "year", "doi", "authors", "venue", "oa_url")}
         table_id = library.save_table(name, columns, rows)

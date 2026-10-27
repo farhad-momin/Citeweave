@@ -191,14 +191,13 @@ route("GET", "/api/extract/presets", async () => ai.PRESET_COLUMNS);
 route("POST", "/api/extract", async (_, b) => {
   const columns = (b.columns || []).filter((c) => (c.name || "").trim());
   if (!columns.length) fail(400, "Add at least one column.");
-  if (!ai.isEnabled()) fail(400, "Automatic tables need an AI provider (Settings, AI). Or use Fill with my chatbot.");
   const refs = b.collection_id ? await L.collectionPapers(b.collection_id) : b.papers || [];
   if (!refs.length) fail(400, "Choose papers for the table.");
   const name = (b.name || "").trim() || `Table ${new Date().toISOString().slice(0, 10)}`;
   return { job: jobs.start("extract", async (progress, signal) => {
     const ps = [];
     for (const r of refs.slice(0, 200)) ps.push(await paperFrom(r));
-    const rows = await ai.extract(ps, columns, progress, signal);
+    const rows = await ai.extract(ps, columns, progress, signal, b.use_ai !== false);
     rows.forEach((r, i) => {
       const p = ps[i];
       r.paper = { id: p.id, title: p.title, year: p.year, doi: p.doi, authors: p.authors, venue: p.venue, oa_url: p.oa_url };

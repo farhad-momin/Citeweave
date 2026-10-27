@@ -39,4 +39,6 @@ If the provider speaks the common chat completions format, add a `Preset` in `ci
 
 - Keep pull requests focused, and include tests for new behaviour.
 - Run `ruff check citeweave tests` and `python -m pytest` before you open one.
+- Also run `node --test web/tests/*.test.mjs` and `python scripts/build_web.py`. The desktop and browser engines must preserve the same behavior.
+- Keep the no-key path working. Evidence excerpts must remain distinguishable from generated interpretations; matching a quote does not verify a claim.
 - Write interface text in plain, friendly language. Use sentence case.

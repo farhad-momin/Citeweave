@@ -40,7 +40,8 @@ async def search(query: str, source: str = "auto", limit: int = 25, filters: dic
         ok, reason = src.ready()
         if not ok:
             raise SourceError(reason)
-        return await src.search(query, limit=limit, filters=filters)
+        papers = await src.search(query, limit=limit, filters=filters)
+        return [p for p in papers if p.get("oa_url")] if filters.get("oa_only") else papers
 
     results: list[dict] = []
     used: list[str] = []
@@ -64,8 +65,6 @@ async def search(query: str, source: str = "auto", limit: int = 25, filters: dic
             results = dedupe(out)
             if results or mode == "single":
                 break
-    if filters.get("oa_only"):
-        results = [p for p in results if p.get("oa_url")] or results
     return {"results": results[:limit * 2], "used": used, "errors": errors}
 
 

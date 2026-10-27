@@ -103,7 +103,7 @@ export async function render(root) {
     provider.addEventListener("change", () => save({ ai: { provider: provider.value, model: "", base_url: "" } }, null).then(drawAI));
     aiBox.replaceChildren(h("div", { class: "form-grid" }, h("label", { class: "field" }, h("span", {}, "Provider"), provider)));
     if (!preset) {
-      aiBox.append(h("p", { class: "muted small" }, "Without AI: search, maps, library, export, profiles, and ranked answers built from key sentences all work. AI adds written answers, summaries and tables."));
+      aiBox.append(h("p", { class: "muted small" }, "Without AI: search, maps, library, export, profiles, key-sentence answers and free evidence tables all work. No account, API key or model download is needed. Optional AI adds generated answers and interpreted table values."));
       return;
     }
     const fields = aiBox.firstChild;

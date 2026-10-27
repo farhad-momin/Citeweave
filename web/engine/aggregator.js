@@ -35,7 +35,8 @@ export async function search(query, source = "auto", limit = 25, filters = null)
     if (!src) throw new SourceError(`Unknown source: ${name}`);
     const [ok, reason] = src.ready();
     if (!ok) throw new SourceError(reason);
-    return src.search(query, limit, filters);
+    const papers = await src.search(query, limit, filters);
+    return filters.oa_only ? papers.filter((p) => p.oa_url) : papers;
   };
 
   let results = [];
@@ -61,10 +62,6 @@ export async function search(query, source = "auto", limit = 25, filters = null)
       results = dedupe(out);
       if (results.length || mode === "single") break;
     }
-  }
-  if (filters.oa_only) {
-    const oa = results.filter((p) => p.oa_url);
-    if (oa.length) results = oa;
   }
   return { results: results.slice(0, limit * 2), used, errors };
 }

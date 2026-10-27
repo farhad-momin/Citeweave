@@ -57,19 +57,15 @@ export function parseJsonReply(text) {
   throw new Error("The reply is not in the expected format. Copy the chatbot's whole reply, including the code block, and try again.");
 }
 
-const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const norm = (s) => String(s || "").normalize("NFKC")
+  .replace(/[\u2018\u2019\u201a\u201b]/g, "'").replace(/[\u201c\u201d\u201e]/g, '"')
+  .replace(/[\u2010-\u2014\u2212]/g, "-").replace(/\s+/g, " ").trim();
 
-// Does the quote really appear in the paper's text? Allows small differences in punctuation.
+// Only normalize typography and whitespace; reordered words or changed numbers do not match.
 export function quoteFound(quote, text) {
   const q = norm(quote), t = norm(text);
   if (!q) return true;
-  if (` ${t} `.includes(` ${q} `)) return true;
-  const words = q.split(" ");
-  if (words.length < 6) return false;
-  // whole words only: "a" or "in" must not count as found inside other words
-  const have = new Set(t.split(" "));
-  const hits = words.filter((w) => have.has(w)).length;
-  return hits / words.length >= 0.85;
+  return t.includes(q);
 }
 
 // Cleans an answer and lists citation numbers that do not match a paper.
@@ -94,8 +90,9 @@ export function rowsFromReply(data, columns, papers, offset = 0) {
   const rows = [];
   papers.forEach((p, i) => {
     const n = offset + i + 1;
-    const item = items.find((x) => Number(x?.n) === n) || (items.length === papers.length ? items[i] : null);
-    const values = {};
+    const matches = items.filter((x) => Number(x?.n) === n);
+    const item = matches.length === 1 ? matches[0] : null;
+    const values = Object.create(null);
     let unverified = 0;
     for (const c of columns) {
       const v = item?.values?.[c.name] ?? item?.[c.name];
@@ -104,12 +101,13 @@ export function rowsFromReply(data, columns, papers, offset = 0) {
       else if (v !== undefined && v !== null) value = String(v).trim();
       // a value with no supporting quote cannot be checked, so it is marked like a quote that was not found
       const reported = value && !/^not reported\.?$/i.test(value);
-      const ok = reported && !quote ? false : quoteFound(quote, `${p.abstract || ""} ${p.tldr || ""} ${p.title || ""}`);
+      const ok = reported && !quote ? false : quoteFound(quote, p.abstract || p.tldr || "");
       if (!ok) unverified++;
-      values[c.name] = { value, quote, ...(ok ? {} : { unverified: true }) };
+      values[c.name] = { value, quote, evidence_status: ok ? (quote ? "quote matched" : "not reported") : "unverified",
+        ...(ok ? {} : { unverified: true }) };
     }
     rows.push({
-      paper_id: p.id, based_on: "abstract", values,
+      paper_id: p.id, based_on: p.abstract ? "abstract" : p.tldr ? "summary" : null, mode: "chatbot", values,
       error: !item ? "The chatbot reply did not include this paper." : unverified ? `${unverified} value(s) could not be confirmed in the abstract. Check these values.` : null,
       paper: { id: p.id, title: p.title, year: p.year, doi: p.doi, authors: p.authors, venue: p.venue, oa_url: p.oa_url },
     });

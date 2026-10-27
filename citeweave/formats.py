@@ -96,20 +96,24 @@ def to_ris(papers: list[dict]) -> str:
 
 
 def to_csv(papers: list[dict]) -> str:
-    buf = io.StringIO()
-    w = csv.writer(buf)
-    w.writerow(["Title", "Authors", "Year", "Venue", "DOI", "Cited by", "Open access link", "Status", "Tags", "Notes",
-                "Abstract"])
+    rows = [["Title", "Authors", "Year", "Venue", "DOI", "Cited by", "Open access link", "Status", "Tags", "Notes",
+             "Abstract"]]
     for p in papers:
-        w.writerow([p.get("title"), "; ".join(a["name"] for a in p.get("authors") or []), p.get("year") or "",
+        rows.append([p.get("title"), "; ".join(a["name"] for a in p.get("authors") or []), p.get("year") or "",
                     p.get("venue") or "", p.get("doi") or "", p.get("cited_by_count") or "", p.get("oa_url") or "",
                     p.get("status") or "", "; ".join(p.get("tags") or []), p.get("note") or "", p.get("abstract") or ""])
-    return buf.getvalue()
+    return rows_to_csv(rows)
+
+
+def _csv_safe(value) -> str:
+    text = "" if value is None else str(value)
+    # Treat imported metadata and model output as text, never spreadsheet formulas.
+    return "'" + text if text.lstrip().startswith(("=", "+", "-", "@")) or text.startswith(("\t", "\r", "\n")) else text
 
 
 def rows_to_csv(rows: list[list[str]]) -> str:
     buf = io.StringIO()
-    csv.writer(buf).writerows(rows)
+    csv.writer(buf).writerows([_csv_safe(v) for v in row] for row in rows)
     return buf.getvalue()
 
 

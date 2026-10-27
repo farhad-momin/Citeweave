@@ -29,7 +29,7 @@ export function render(root) {
       } }, h("span", { class: "muted" }, "+ New collection")),
       h("hr"),
       btn("Import", importDialog, { cls: "small ghost", ico: "upload" }),
-      globalThis.CITEWEAVE_WEB ? null : btn("Zotero", zoteroDialog, { cls: "small ghost", ico: "download" }));
+      ...(globalThis.CITEWEAVE_WEB ? [] : [btn("Zotero", zoteroDialog, { cls: "small ghost", ico: "download" })]));
     drawPapers();
   }
 

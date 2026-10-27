@@ -139,9 +139,17 @@ test("ask without AI ranks papers and builds an answer from key sentences", asyn
   assert.match(j.result.answer, /12 percent.*\[1\]/);
 });
 
-test("extract refuses without AI with a pointer to the chatbot option", async () => {
+test("extract without AI saves a free evidence table and exports its provenance", async () => {
   reset();
-  await assert.rejects(api.post("/api/extract", { columns: [{ name: "Method" }], papers: [paper(1)] }), /chatbot/);
+  const p = { ...paper(1), abstract: "We tested concrete using compression tests." };
+  const started = await api.post("/api/extract", { columns: [{ name: "Method" }], papers: [p] });
+  const job = await waitJob(started.job);
+  assert.equal(job.status, "done");
+  assert.equal(job.result.rows[0].mode, "extractive");
+  assert.equal(job.result.rows[0].values.Method.quote, p.abstract);
+  const csv = await api.get(`/api/tables/${job.result.id}/csv`);
+  assert.match(csv, /Method \(quote\)/);
+  assert.match(csv, /source excerpt/);
 });
 
 test("GitHub sync reads and writes through the contents API with the stored token", async () => {

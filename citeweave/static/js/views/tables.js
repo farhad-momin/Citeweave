@@ -56,14 +56,14 @@ export function render(root) {
     drawPicks();
   }
 
-  async function run() {
+  async function run(useAi = false) {
     const cols = columns.filter((c) => c.name.trim());
     if (!state.tablePicks.length) { toast("Add some papers first"); return; }
     if (!cols.length) { toast("Add at least one column"); return; }
     const pb = progressBox();
     out.replaceChildren(pb.el);
     try {
-      current = await runJob(api.post("/api/extract", { papers: state.tablePicks, columns: cols, name: nameInput.value }), pb.update);
+      current = await runJob(api.post("/api/extract", { papers: state.tablePicks, columns: cols, name: nameInput.value, use_ai: useAi }), pb.update);
       showTable(current);
       loadSaved();
     } catch (e) { out.replaceChildren(h("p", { class: "err" }, e.message)); }
@@ -115,8 +115,9 @@ export function render(root) {
           r.error ? h("div", { class: "err small" }, r.error) : null),
         t.columns.map((c) => {
           const v = r.values?.[c.name];
-          return h("td", { class: "cell" }, v?.value || "", v?.quote ? h("span", { class: "q" }, `“${v.quote}”`) : null,
-            v?.unverified ? h("span", { class: "unverified" }, v.quote ? "Quote not found in the abstract" : "No supporting quote given") : null);
+          return h("td", { class: "cell" }, v?.value || "", v?.quote && v.quote !== v.value ? h("span", { class: "q" }, `“${v.quote}”`) : null,
+            v?.unverified ? h("span", { class: "unverified" }, v.quote ? "Quote not found in the source text" : "No supporting quote given") : null,
+            v?.needs_review ? h("span", { class: "small muted", style: { display: "block", marginTop: "6px" } }, "Candidate excerpt. Review for relevance.") : null);
         })))));
     out.replaceChildren(
       h("div", { class: "row", style: { margin: "18px 0 10px" } }, h("h2", { class: "grow", style: { margin: 0 } }, t.name),
@@ -124,7 +125,9 @@ export function render(root) {
           try { download(`${(t.name || "table").replace(/[^\w-]+/g, "_")}.csv`, await fetchText(`/api/tables/${encodeURIComponent(t.id)}/csv`), "text/csv"); }
           catch (e) { showError(e); }
         }, { cls: "small", ico: "download" })),
-      h("p", { class: "small muted" }, t.rows.some((r) => r.based_on && r.based_on !== "abstract")
+      t.rows.some((r) => r.mode === "extractive") ? h("p", { class: "callout" },
+        "Free evidence mode retrieves candidate sentences using English keywords. It does not interpret findings. A missing match does not mean the paper omits the information. Review each excerpt in context.") : null,
+      h("p", { class: "small muted" }, t.rows.some((r) => r.based_on === "full text")
         ? "Values come from each paper's abstract, or its full text when an open access PDF was available. Quotes show the supporting text. Check important values in the paper."
         : "Values come from each paper's abstract. Quotes show the supporting text. Check important values in the paper."),
       h("div", { class: "grid-wrap" }, table));
@@ -154,14 +157,15 @@ export function render(root) {
     h("h1", {}, "Tables"),
     h("p", { class: "lede" }, "Pull the same details from many papers into one table: methods, samples, findings, anything you describe."),
     aiOn ? null : h("div", { class: "callout" },
-      "No AI is set up, so use the chatbot you already have: Citeweave prepares the prompt and reads the reply. ",
-      "For automatic tables, set up AI in Settings (Ollama is free and runs on your computer, or use your own key). ",
+      "Start with free evidence excerpts: no account, API key or model download required. ",
+      "For interpreted answers, optionally configure a local model or your own API provider. ",
       h("a", { href: "#/settings" }, "Set up AI")),
     picksBox,
     h("h3", {}, "Columns"), presetsBox, colsBox,
     h("div", { class: "row", style: { marginTop: "12px" } }, nameInput,
-      aiOn ? btn("Fill the table", run, { cls: "primary" }) : null,
-      btn("Fill with my chatbot", runChatbot, { cls: aiOn ? "" : "primary", ico: "spark" })),
+      btn("Find evidence (free)", () => run(false), { cls: "primary" }),
+      aiOn ? btn("Fill with AI", () => run(true)) : null,
+      btn("Fill with my chatbot", runChatbot, { ico: "spark" })),
     out, h("hr"), savedBox));
   drawPicks(); drawCols(); loadSaved();
 }

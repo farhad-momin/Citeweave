@@ -177,7 +177,7 @@ export function render(root) {
 
   root.append(h("div", { class: "page" },
     h("h1", {}, "Ask a question"),
-    h("p", { class: "lede" }, "Answers come only from real papers in open databases, with a link for every claim."),
+    h("p", { class: "lede" }, "Find relevant papers and review their evidence. Generated answers need checking against the cited sources."),
     q,
     h("div", { class: "row", style: { margin: "10px 0 18px" } },
       btn("Ask", go, { cls: "primary" }),

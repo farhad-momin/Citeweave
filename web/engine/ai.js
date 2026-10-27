@@ -2,6 +2,7 @@
 // with the researcher's own key, plus the free model some browsers ship (Chrome's built-in AI).
 // Every task still works without AI, as in the PC app.
 import * as aggregator from "./aggregator.js";
+import { checkValues, evidenceRow } from "./evidence.js";
 import { dedupe, titleSimilarity } from "./models.js";
 import { keySentence, rankPapers, splitSentences } from "./rank.js";
 import { settings } from "./settings.js";
@@ -282,7 +283,7 @@ export function extractPrompt(paper, columns, text, kind) {
 }
 
 export function valuesFrom(data, columns) {
-  const values = {};
+  const values = Object.create(null);
   for (const c of columns) {
     const v = data && typeof data === "object" ? data[c.name] : undefined;
     if (v && typeof v === "object") values[c.name] = { value: String(v.value ?? "").trim(), quote: String(v.quote ?? "").trim() };
@@ -292,24 +293,29 @@ export function valuesFrom(data, columns) {
   return values;
 }
 
-export async function extractOne(paper, columns, signal) {
+export async function extractOne(paper, columns, signal, useAi = true) {
   const [text, kind] = getText(paper);
+  if (!useAi || !isEnabled()) return evidenceRow(paper, columns, text, kind);
   if (!text) return { paper_id: paper.id, based_on: null, values: {}, error: "No abstract available" };
   const raw = await chat(GROUNDING, extractPrompt(paper, columns, text, kind), { maxTokens: 1400, jsonMode: true, signal });
-  return { paper_id: paper.id, based_on: kind, values: valuesFrom(parseJson(raw), columns), error: null };
+  const values = checkValues(valuesFrom(parseJson(raw), columns), text);
+  const flagged = Object.values(values).filter((v) => v.unverified).length;
+  return { paper_id: paper.id, based_on: kind, mode: "ai", values,
+    error: flagged ? `${flagged} value(s) lack a matching source quote. Review these values.` : null };
 }
 
-export async function extract(papers, columns, progress = () => {}, signal) {
-  if (!isEnabled()) throw new AIError("Table extraction needs an AI provider. Pick one in Settings, AI, or use the chatbot option.");
+export async function extract(papers, columns, progress = () => {}, signal, useAi = true) {
   const rows = [];
   for (let i = 0; i < papers.length; i++) {
     if (signal?.aborted) throw new Error("Stopped");
     progress(`Reading paper ${i + 1} of ${papers.length}`, i / Math.max(papers.length, 1));
     try {
-      rows.push(await extractOne(papers[i], columns, signal));
+      rows.push(await extractOne(papers[i], columns, signal, useAi));
     } catch (e) {
-      if (e?.name === "AbortError") throw e;
-      rows.push({ paper_id: papers[i].id, based_on: null, values: {}, error: e.message });
+      if (e?.name === "AbortError" || signal?.aborted) throw e;
+      const row = await extractOne(papers[i], columns, signal, false);
+      row.error = `AI unavailable; showing free evidence excerpts. ${e.message}`;
+      rows.push(row);
     }
   }
   progress("Done", 1);
@@ -367,11 +373,15 @@ export async function verifySuggestions(items) {
 }
 
 export function tableToCsvRows(columns, rows, papers) {
-  const out = [["Title", "Year", "DOI", "Based on", ...columns.map((c) => c.name)]];
+  const out = [["Title", "Year", "DOI", "Based on", "Mode", "Row note",
+    ...columns.flatMap((c) => [c.name, `${c.name} (quote)`, `${c.name} (evidence status)`])]];
   for (const r of rows) {
-    const p = papers[r.paper_id] || {};
-    out.push([p.title || "", String(p.year || ""), p.doi || "", r.based_on || "",
-      ...columns.map((c) => (r.values?.[c.name] || {}).value || "")]);
+    const p = papers[r.paper_id] || r.paper || {};
+    out.push([p.title || "", String(p.year || ""), p.doi || "", r.based_on || "", r.mode || "", r.error || "",
+      ...columns.flatMap((c) => {
+        const cell = r.values?.[c.name] || {};
+        return [cell.value || "", cell.quote || "", cell.evidence_status || (cell.unverified ? "unverified" : "not checked")];
+      })]);
   }
   return out;
 }
